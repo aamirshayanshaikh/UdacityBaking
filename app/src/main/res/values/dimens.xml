@@ -20,6 +20,6 @@
 
     <dimen name="timeline_view_width">48dp</dimen>
     <dimen name="recipe_img_width">150dp</dimen>
-    <dimen name="player_view_height">250dp</dimen>
+    <dimen name="player_view_height">200dp</dimen>
 
 </resources>

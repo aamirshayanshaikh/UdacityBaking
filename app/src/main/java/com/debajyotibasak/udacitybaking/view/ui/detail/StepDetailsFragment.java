@@ -12,8 +12,12 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.RequestOptions;
 import com.debajyotibasak.udacitybaking.R;
 import com.debajyotibasak.udacitybaking.api.model.Step;
 import com.debajyotibasak.udacitybaking.interfaces.StepButtonClickListener;
@@ -48,6 +52,8 @@ public class StepDetailsFragment extends DaggerFragment {
     private TextView txvDescription;
     private Button btnNext;
     private Button btnPrevious;
+    private ImageView thumbnail;
+    private FrameLayout videoView;
 
     private boolean playWhenReady;
     private int currentWindow = 0;
@@ -76,6 +82,8 @@ public class StepDetailsFragment extends DaggerFragment {
         txvDescription = view.findViewById(R.id.txvDescription);
         btnNext = view.findViewById(R.id.btn_next);
         btnPrevious = view.findViewById(R.id.btn_prev);
+        thumbnail = view.findViewById(R.id.thumbnail);
+        videoView = view.findViewById(R.id.video_view);
     }
 
     @Override
@@ -138,10 +146,10 @@ public class StepDetailsFragment extends DaggerFragment {
     }
 
     private void initializePlayer() {
-        String url = step.getVideoURL();
+        String url = getUrl();
 
-        if (url.isEmpty()) {
-            exoPlayerView.setVisibility(View.GONE);
+        if (url.equals("")) {
+            videoView.setVisibility(View.GONE);
         }
 
         simpleExoPlayer = ExoPlayerFactory.newSimpleInstance(
@@ -159,6 +167,31 @@ public class StepDetailsFragment extends DaggerFragment {
         simpleExoPlayer.prepare(mediaSource, true, false);
         simpleExoPlayer.setPlayWhenReady(playWhenReady);
         simpleExoPlayer.seekTo(currentWindow, playbackPosition);
+    }
+
+    private String getUrl() {
+        String url = step.getVideoURL();
+        if (url.isEmpty()) {
+            String thumbnailUrl = step.getThumbnailURL();
+            if (!thumbnailUrl.isEmpty()) {
+                setThumbnail(thumbnailUrl);
+                url = thumbnailUrl;
+            } else {
+                thumbnail.setVisibility(View.GONE);
+                url = "";
+            }
+        }
+        return url;
+    }
+
+    private void setThumbnail(String thumbnailUrl) {
+        thumbnail.setVisibility(View.VISIBLE);
+        Glide.with(thumbnail.getContext())
+                .load(thumbnailUrl)
+                .apply(new RequestOptions()
+                        .placeholder(R.drawable.recipe_placeholder)
+                        .error(R.drawable.recipe_placeholder))
+                .into(thumbnail);
     }
 
     private void releasePlayer() {
@@ -181,25 +214,33 @@ public class StepDetailsFragment extends DaggerFragment {
     @Override
     public void onStart() {
         super.onStart();
-        if (Util.SDK_INT > 23) initializePlayer();
+        if (Util.SDK_INT > 23) {
+            initializePlayer();
+        }
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        if (Util.SDK_INT > 23 || simpleExoPlayer == null) initializePlayer();
+        if (Util.SDK_INT <= 23 || simpleExoPlayer == null) {
+            initializePlayer();
+        }
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        if (Util.SDK_INT > 23) releasePlayer();
+        if (Util.SDK_INT <= 23) {
+            releasePlayer();
+        }
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        if (Util.SDK_INT > 23) releasePlayer();
+        if (Util.SDK_INT > 23) {
+            releasePlayer();
+        }
     }
 
     @Override
