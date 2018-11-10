@@ -58,6 +58,10 @@ public class StepDetailsFragment extends DaggerFragment {
     private boolean playWhenReady;
     private int currentWindow = 0;
     private long playbackPosition = 0;
+    private int mCurrentStep = 0;
+    private int mStepsize = 0;
+    private String description = "";
+    private String videoUrl = "";
 
     private static final String PLAYER_STATE = "player_state";
     private static final String PLAYER_POSITION = "key_player_position";
@@ -118,26 +122,46 @@ public class StepDetailsFragment extends DaggerFragment {
         View view = inflater.inflate(R.layout.fragment_step_details, container, false);
         initViews(view);
 
-        mainViewModel.getSelectedStep().observe(getActivity(), selectedStep -> {
-            if (selectedStep != null) {
-                step = selectedStep;
-                txvDescription.setText(step.getDescription());
-            }
-        });
+        if (savedInstanceState != null) {
+            videoUrl = savedInstanceState.getString("videoUrl");
+            description = savedInstanceState.getString("description");
+            playbackPosition = savedInstanceState.getLong("playbackPosition");
+            playWhenReady = savedInstanceState.getBoolean("playWhenReady");
+            mStepsize = savedInstanceState.getInt("stepSize");
+            mCurrentStep = savedInstanceState.getInt("currentStep");
 
-        mainViewModel.getStepsSize().observe(this, stepSize -> {
-            if (stepSize != null) {
-                mainViewModel.getCurrentStep().observe(this, currentStep -> {
-                    if (currentStep != null) {
-                        if (currentStep - 1 < 0) {
-                            btnPrevious.setVisibility(View.INVISIBLE);
-                        } else if (currentStep + 1 > stepSize - 1) {
-                            btnNext.setVisibility(View.INVISIBLE);
-                        }
-                    }
-                });
+            txvDescription.setText(description);
+            if (mCurrentStep - 1 < 0) {
+                btnPrevious.setVisibility(View.INVISIBLE);
+            } else if (mCurrentStep + 1 > mStepsize - 1) {
+                btnNext.setVisibility(View.INVISIBLE);
             }
-        });
+        } else {
+            mainViewModel.getSelectedStep().observe(getActivity(), selectedStep -> {
+                if (selectedStep != null) {
+                    step = selectedStep;
+                    description = step.getDescription();
+                    videoUrl = getUrl();
+                    txvDescription.setText(description);
+                }
+            });
+
+            mainViewModel.getStepsSize().observe(getActivity(), stepSize -> {
+                if (stepSize != null) {
+                    mainViewModel.getCurrentStep().observe(this, currentStep -> {
+                        if (currentStep != null) {
+                            mCurrentStep = currentStep;
+                            mStepsize = stepSize;
+                            if (currentStep - 1 < 0) {
+                                btnPrevious.setVisibility(View.INVISIBLE);
+                            } else if (currentStep + 1 > stepSize - 1) {
+                                btnNext.setVisibility(View.INVISIBLE);
+                            }
+                        }
+                    });
+                }
+            });
+        }
 
         btnNext.setOnClickListener(v -> stepButtonClickListener.onNextStep());
         btnPrevious.setOnClickListener(v -> stepButtonClickListener.onPreviousStep());
@@ -146,7 +170,7 @@ public class StepDetailsFragment extends DaggerFragment {
     }
 
     private void initializePlayer() {
-        String url = getUrl();
+        String url = videoUrl;
 
         if (url.equals("")) {
             videoView.setVisibility(View.GONE);
@@ -209,6 +233,23 @@ public class StepDetailsFragment extends DaggerFragment {
                 getArguments().putBundle(PLAYER_STATE, args);
             }
         }
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (simpleExoPlayer != null) {
+            playbackPosition = simpleExoPlayer.getCurrentPosition();
+            currentWindow = simpleExoPlayer.getCurrentWindowIndex();
+            playWhenReady = simpleExoPlayer.getPlayWhenReady();
+        }
+
+        outState.putString("videoUrl", videoUrl);
+        outState.putString("description", description);
+        outState.putLong("playbackPosition", playbackPosition);
+        outState.putBoolean("playWhenReady", playWhenReady);
+        outState.putInt("stepSize", mStepsize);
+        outState.putInt("currentStep", mCurrentStep);
     }
 
     @Override
