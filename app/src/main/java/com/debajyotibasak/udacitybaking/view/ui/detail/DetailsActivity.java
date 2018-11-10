@@ -66,7 +66,12 @@ public class DetailsActivity extends DaggerAppCompatActivity implements StepSele
 
         mainViewModel = ViewModelProviders.of(this, viewModelFactory).get(MainViewModel.class);
 
-        recipeId = getIntent().getIntExtra("id", 0);
+        if (savedInstanceState != null) {
+            recipeId = savedInstanceState.getInt(RECIPE_ID);
+            selectedStepIndex = savedInstanceState.getInt(SELECTED_STEP);
+        } else {
+            recipeId = getIntent().getIntExtra("id", 0);
+        }
 
         mainViewModel.getRecipeById(recipeId).observe(this, recipe -> {
             if (recipe != null) {
@@ -97,9 +102,7 @@ public class DetailsActivity extends DaggerAppCompatActivity implements StepSele
     private void setupLayout() {
         isLayoutMultiPane = fragmentDetail != null;
 
-        getSupportFragmentManager().addOnBackStackChangedListener(() -> {
-            fragmentTransaction();
-        });
+        getSupportFragmentManager().addOnBackStackChangedListener(this::fragmentTransaction);
 
         if (getSupportFragmentManager().findFragmentByTag(TAG_STEPS_FRAGMENT) == null) {
             showStepsListFragment();
